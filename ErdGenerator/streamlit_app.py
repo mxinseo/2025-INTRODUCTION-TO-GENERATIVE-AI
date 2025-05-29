@@ -1,3 +1,4 @@
+from io import BytesIO
 import streamlit as st
 from PIL import Image
 import requests
@@ -7,6 +8,10 @@ from eraser_ai import eraser_ai_api
 # 세션 상태 초기화
 if "step" not in st.session_state:
     st.session_state["step"] = "idle"  # idle -> generating -> done
+if "uploaded_img" not in st.session_state:
+    st.session_state["uploaded_img"] = None
+if "image_PIL" not in st.session_state:
+    st.session_state["image_PIL"] = None
 
 # Streamlit Main
 st.title('⚙️ ERD Generator')
@@ -21,72 +26,58 @@ st.info(
 
 # 사이드바 : 이미지 업로드
 st.sidebar.title("📤 이미지 업로드")
-uploaded_img = st.sidebar.file_uploader(
+uploaded_file = st.sidebar.file_uploader(
     label="이미지 선택",
     type=["png", "jpg", "jpeg"],
     label_visibility="hidden"
 )
-if uploaded_img is not None:
-    image = Image.open(uploaded_img)
+
+# 샘플 이미지 사용
+if st.sidebar.button("샘플 이미지 사용하기", use_container_width=True, icon=":material/image:"):
+    with open("erd_sample.png", "rb") as f:
+        st.session_state["uploaded_img"] = f.read()
+    st.session_state["image_PIL"] = Image.open(BytesIO(st.session_state["uploaded_img"]))
+
+# 사용자 이미지 업로드
+if uploaded_file is not None:
+    st.session_state["uploaded_img"] = uploaded_file.read()
+    st.session_state["image_PIL"] = Image.open(BytesIO(st.session_state["uploaded_img"]))
+
+# 이미지 미리 보기
+if st.session_state["uploaded_img"] is not None:
     with st.sidebar.expander("업로드한 이미지", expanded=True):
-        st.image(image)
-    if st.sidebar.button("생성하기", use_container_width=True, icon=":material/refresh:"):
-        st.session_state["step"] = "generating"
+        st.image(st.session_state["image_PIL"])
 
+# 생성하기 버튼
+if (st.session_state["uploaded_img"] is not None) and st.sidebar.button("생성하기", use_container_width=True, icon=":material/refresh:"):
+    st.session_state["step"] = "generating"
 
-# GPT-4 Vision API
+# 생성
 if st.session_state["step"] == "generating":
-    warning = st.warning(
-        """
-        생성 중 ... 잠시만 기다려주세요 😊
-        """,
-        icon=":material/hourglass_empty:"
-    )
+    st.warning("생성 중 ... 잠시만 기다려주세요 😊", icon=":material/hourglass_empty:")
 
-    # gpt_response = gpt4_vision_api(uploaded_img)
-    gpt_response = "123"
+    gpt_response = gpt4_vision_api(st.session_state["uploaded_img"])
 
-    # Eraser API
     if gpt_response is not None:
-        # eraser_response = eraser_ai_api(gpt_response)
-        # generated_erd_url = eraser_response.get("imageUrl")
-        # generated_erd_code = eraser_response.get("code")
+        eraser_response = eraser_ai_api(gpt_response)
+        st.session_state["generated_erd_url"] = eraser_response.get("imageUrl")
+        st.session_state["generated_erd_code"] = eraser_response.get("code")
         st.session_state["step"] = "done"
 
-
-# # 더미데이터
-st.session_state["generated_erd_url"] = "https://image.utoimage.com/preview/cp872722/2022/12/202212008462_500.jpg"
-generated_erd_code = """
-// title\ntitle Social Media Platform Data Model\n\n
-// define tables\nusers [icon: user, color: yellow]{\n  id string pk\n  username string unique\n  email string\n  password string\n  createdAt timestamp\n}\n\n
-tweets [icon: message-square, color: blue]{\n  id string pk\n  userId string\n  content string\n  createdAt timestamp\n}\n\n
-comments [icon: message-circle, color: green]{\n  id string pk\n  userId string\n  content string\n  createdAt timestamp\n  tweetId string\n}\n\n
-likes [icon: heart, color: red]{\n  id string pk\n  createdAt timestamp\n  userId string\n  tweetId string\n}\n\n
-followers [icon: users, color: purple]{\n  id string pk\n  followerId string\n  followeeId string\n}\n\n
-// define relationships\ntweets.userId > users.id\ncomments.userId > users.id\ncomments.tweetId > tweets.id\nlikes.userId > users.id\nlikes.tweetId > tweets.id\nfollowers.followerId > users.id\nfollowers.followeeId > users.id\n
-"""
-
-
-# 생성된 이미지 부분
+# 생성된 ERD 결과 표시
 if st.session_state["step"] == "done":
     try:
-        response = requests.get(st.session_state["generated_erd_url"] )
+        response = requests.get(st.session_state["generated_erd_url"])
         response.raise_for_status()
         image_bytes = response.content
 
-        warning.empty()
-        st.success(
-            """
-            생성이 완료되었습니다!
-            """,
-            icon=":material/check_circle:"
-        )
+        st.success("생성이 완료되었습니다!", icon=":material/check_circle:")
 
         with st.container(border=True):
             st.image(st.session_state["generated_erd_url"], use_container_width=True)
 
         with st.expander("EraserAI ERD 코드 보기", icon=":material/code:"):
-            st.code(generated_erd_code, language="None")
+            st.code(st.session_state["generated_erd_code"], language="None")
 
         st.download_button(
             label="생성된 ERD 이미지 다운로드",

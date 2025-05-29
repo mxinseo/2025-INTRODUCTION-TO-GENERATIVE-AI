@@ -16,10 +16,24 @@ def gpt4_vision_api(image_bytes: bytes) -> str:
     """
     base64_image = base64.b64encode(image_bytes).decode("utf-8")
 
-    prompt = "프롬프트"
+    prompt = """
+        이 이미지를 보고 erd를 DBML 코드로 변환해줘.
+        Table의 예시 코드는 아래와 같아 :
+            Table users {
+              id integer [primary key]
+              username varchar
+              role varchar
+              created_at timestamp
+            }
+        Ref의 예시 코드를 아래와 같아:
+            Ref user_posts: posts.user_id > users.id // many-to-one
+            Ref: users.id < follows.following_user_id
+        
+        답변은 DBML(Table과 red를 포함한) 코드만 포함해줘.
+    """
 
     response = openai.chat.completions.create(
-        model="gpt-4-vision-preview",
+        model="gpt-4o",
         messages=[
             {
                 "role": "user",
