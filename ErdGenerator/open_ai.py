@@ -51,4 +51,6 @@ def gpt4_vision_api(image_bytes: bytes) -> str:
         max_tokens=1000
     )
 
+    print("✅ GPT response \n", response)
+
     return response.choices[0].message.content

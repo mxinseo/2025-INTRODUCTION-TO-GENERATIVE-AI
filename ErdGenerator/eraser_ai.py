@@ -33,6 +33,8 @@ def eraser_ai_api(prompt_text: str) -> dict:
     response.raise_for_status()
     data = response.json()
 
+    print("✅ Eraser AI response \n", data)
+
     return {
         "imageUrl": data["imageUrl"],
         "code": data["diagrams"][0]["code"]

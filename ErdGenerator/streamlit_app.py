@@ -54,14 +54,18 @@ if (st.session_state["uploaded_img"] is not None) and st.sidebar.button("생성�
 
 # 생성
 if st.session_state["step"] == "generating":
-    warning = st.warning("생성 중 ... 잠시만 기다려주세요 😊", icon=":material/hourglass_empty:")
+    st.session_state["warning"] = st.warning("생성 중 ... 잠시만 기다려주세요 😊", icon=":material/hourglass_empty:")
 
     gpt_response = gpt4_vision_api(st.session_state["uploaded_img"])
 
     if gpt_response is not None:
+        st.session_state["warning_gpt"] = st.warning("GPT-4o 응답 완료", icon=":material/task_alt:")
         eraser_response = eraser_ai_api(gpt_response)
         st.session_state["generated_erd_url"] = eraser_response.get("imageUrl")
         st.session_state["generated_erd_code"] = eraser_response.get("code")
+
+        st.session_state["warning_gpt"].empty()
+        st.session_state["warning_eraser"] = st.warning("Eraser AI diagram 응답 완료", icon=":material/task_alt:")
         st.session_state["step"] = "done"
 
 # 생성된 ERD 결과 표시
@@ -71,7 +75,11 @@ if st.session_state["step"] == "done":
         response.raise_for_status()
         image_bytes = response.content
 
-        warning.empty()
+        if "warning" in st.session_state:
+            st.session_state["warning"].empty()
+        if "warning_eraser" in st.session_state:
+            st.session_state["warning_eraser"].empty()
+
         st.success("생성이 완료되었습니다!", icon=":material/check_circle:")
 
         with st.container(border=True):
