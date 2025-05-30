@@ -62,7 +62,7 @@ if st.session_state["step"] == "generating":
         st.session_state["warning_gpt"] = st.warning("GPT-4o 응답 완료", icon=":material/task_alt:")
         eraser_response = eraser_ai_api(gpt_response)
         st.session_state["generated_erd_url"] = eraser_response.get("imageUrl")
-        st.session_state["generated_erd_code"] = eraser_response.get("code")
+        st.session_state["generated_erd_code"] = gpt_response
 
         st.session_state["warning_gpt"].empty()
         st.session_state["warning_eraser"] = st.warning("Eraser AI diagram 응답 완료", icon=":material/task_alt:")
@@ -85,7 +85,7 @@ if st.session_state["step"] == "done":
         with st.container(border=True):
             st.image(st.session_state["generated_erd_url"], use_container_width=True)
 
-        with st.expander("EraserAI ERD 코드 보기", icon=":material/code:"):
+        with st.expander("DBML 코드 보기", icon=":material/code:"):
             st.code(st.session_state["generated_erd_code"], language="None")
 
         st.download_button(
