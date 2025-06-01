@@ -29,7 +29,7 @@ def gpt4_vision_api(image_bytes: bytes) -> str:
             Ref user_posts: posts.user_id > users.id // many-to-one
             Ref: users.id < follows.following_user_id
         
-        답변은 DBML(Table과 red를 포함한) 코드만 포함해줘.
+        답변은 DBML(Table과 ref를 포함한) 코드만 포함해줘.
     """
 
     response = openai.chat.completions.create(
